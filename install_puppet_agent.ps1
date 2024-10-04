@@ -18,7 +18,7 @@ if (-not (Test-IsAdmin)) {
 # Define Variables
 $puppetInstallerUrl = "https://downloads.puppetlabs.com/windows/puppet7/puppet-agent-x64-latest.msi"
 $puppetConfPath = "C:\ProgramData\PuppetLabs\puppet\etc\puppet.conf"
-$puppetServer = "puppet.yourdomain.com"  # Replace with your Puppet master FQDN
+$puppetServer = "serverus"  # Replace with your Puppet master FQDN
 $puppetInstallerPath = "C:\temp\puppet-agent-x64.msi"
 
 # Check and create temp directory if it doesn't exist
