@@ -6,6 +6,12 @@ class setup_environment {
     onlyif  => 'powershell.exe -Command "(Get-ExecutionPolicy -Scope Process) -ne \'Bypass\'"',
   }
 
+  # Check if the script is running as Administrator
+  exec { 'Check-Administrator':
+    command => 'powershell.exe -Command "[System.Windows.Forms.Messagebox]::Show(\'Not running as administrator!\')"',
+    onlyif  => 'powershell.exe -Command "[Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)" -eq $false"',
+  }
+
   # Download and install Boxstarter
   exec { 'Install-Boxstarter':
     command => 'powershell.exe -Command "(Invoke-WebRequest -useb https://boxstarter.org/bootstrapper.ps1) | Invoke-Expression; get-boxstarter -Force"',
@@ -32,7 +38,7 @@ class setup_environment {
     unless  => 'powershell.exe -Command "Get-WindowsUpdateStatus -ErrorAction SilentlyContinue -eq $true"',
   }
 
-  # Enable Developer Mode only if it is not already enabled
+  # Turn on Developer Mode
   registry_key { 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\AppModelUnlock':
     values => {
       'AllowDevelopmentWithoutDevLicense' => { value => 1, type => 'dword' },
@@ -40,7 +46,7 @@ class setup_environment {
     ensure => present,
   }
 
-  # Enable Long Paths only if not already enabled
+  # Enable Long Paths
   registry_key { 'HKLM\SYSTEM\CurrentControlSet\Control\FileSystem':
     values => {
       'LongPathsEnabled' => { value => 1, type => 'dword' },
@@ -48,25 +54,25 @@ class setup_environment {
     ensure => present,
   }
 
-  # Show hidden files and folders only if the setting is not already applied
+  # Show hidden files, don't show protected files, show extensions everywhere
   exec { 'Set-WindowsExplorerOptions':
     command => 'powershell.exe -Command "Set-WindowsExplorerOptions -EnableShowHiddenFilesFoldersDrives -DisableShowProtectedOSFiles -EnableShowFileExtensions -EnableShowFullPathInTitleBar"',
     onlyif => 'powershell.exe -Command "Get-WindowsExplorerOptions -ShowHiddenFiles -ErrorAction SilentlyContinue -ne $true"',
   }
 
-  # Disable Game Bar Tips only if it's enabled
+  # Disable Game Bar Tips
   exec { 'Disable-GameBarTips':
     command => 'powershell.exe -Command "Disable-GameBarTips"',
-    onlyif => 'powershell.exe -Command "Get-GameBarTipsStatus -ErrorAction SilentlyContinue -eq $true"',
+    onlyif  => 'powershell.exe -Command "Get-GameBarTipsStatus -ErrorAction SilentlyContinue -eq $true"',
   }
 
-  # Chocolatey Configuration
+  # Chocolatey configuration to allow global confirmation
   exec { 'Confirm-ChocolateyPrompts':
     command => 'powershell.exe -Command "choco feature enable -n allowGlobalConfirmation"',
-    onlyif => 'powershell.exe -Command "choco feature list --local-only | Select-String -Pattern "allowGlobalConfirmation: true" -ErrorAction SilentlyContinue"',
+    onlyif  => 'powershell.exe -Command "choco feature list --local-only | Select-String -Pattern "allowGlobalConfirmation: true" -ErrorAction SilentlyContinue"',
   }
 
-  # Package list
+  # Upgrade various packages via Chocolatey
   $packages = [
     'python3 --version=3.11.6',
     'google-drive-file-stream',
@@ -81,10 +87,10 @@ class setup_environment {
     'graphviz',
   ]
 
-  # Upgrade each package in the list
+  # Iterate over each package and upgrade
   $packages.each |$pkg| {
     exec { "Upgrade-${pkg}":
-      command => "choco upgrade ${pkg}",
+      command => "powershell.exe -Command \"choco upgrade ${pkg}\"",
       require => Exec['Confirm-ChocolateyPrompts'],
       onlyif => "powershell.exe -Command \"choco list --local-only | Select-String -Pattern '${pkg}'\"",
     }
@@ -106,7 +112,7 @@ class setup_environment {
     'cx-Freeze',
   ]
 
-  # Upgrade each pip package
+  # Iterate over each pip package and upgrade
   $pip_packages.each |$pip_pkg| {
     exec { "Upgrade-pip-${pip_pkg}":
       command => "powershell.exe -Command 'pip3 install --upgrade ${pip_pkg}'",
@@ -114,95 +120,28 @@ class setup_environment {
     }
   }
 
-  # Configure Bazel settings
+  # Install Bazelisk
   exec { 'Install-bazelisk':
     command => 'powershell.exe -Command "go install github.com/bazelbuild/bazelisk@latest"',
     onlyif => 'powershell.exe -Command "Get-Command bazelisk -ErrorAction SilentlyContinue"',
   }
 
+  # Create Bazel hardlink
   exec { 'Create-Bazel-Hardlink':
-    command => 'powershell.exe -Command "New-Item -ItemType HardLink -Path $env:HOME/go/bin/bazel.exe -Target $env:HOME/go/bin/bazelisk.exe"',
-    onlyif => 'powershell.exe -Command "Test-Path $env:HOME/go/bin/bazel.exe"',
+    command => 'powershell.exe -Command "New-Item -ItemType HardLink -Path ${env['HOME']}/go/bin/bazel.exe -Target ${env['HOME']}/go/bin/bazelisk.exe"',
+    onlyif => 'powershell.exe -Command "Test-Path ${env['HOME']}/go/bin/bazel.exe"',
   }
 
-  # Create .bazelrc if it doesn't exist
+  # Create .bazelrc file if it doesn't exist
   file { "${env['HOME']}/.bazelrc":
     ensure  => present,
     content => "# short output base on Windows to avoid running into path length limits\nstartup --output_base=C:/bz\nbuild --disk_cache=C:/bz_cache\nbuild --repository_cache=C:/bz_cache/bazel_repository_cache\n",
   }
 
-  # Create .bashrc settings if it doesn't exist
+  # Set up .bashrc settings
   file { "${env['HOME']}/.bashrc":
     ensure  => present,
     content => "# no duplicates\nHISTCONTROL=ignoredups:erasedups\nHISTSIZE=100000\nHISTFILESIZE=100000\nshopt -s histappend\nPROMPT_COMMAND='history -a'\n",
-  }
- 
-  # First, ensure English language pack is installed
-  exec { 'install-language-pack':
-    provider => powershell,
-    command  => '
-      # Install English language pack
-      $ProgressPreference = "SilentlyContinue"
-      Install-Language en-US -CopyToSettings
-    ',
-    unless   => 'Get-InstalledLanguage en-US',
-    logoutput => true,
-  }
-
-  # Set display language and other settings
-  exec { 'set-display-language':
-    provider => powershell,
-    command  => '
-      # Set display language to English
-      Set-WinUILanguageOverride -Language en-US
-      
-      # Set display language for welcome screen and new users
-      Set-WinDefaultInputMethodOverride -InputTip "0409:00000409"
-      
-      # Set display language for system accounts
-      $MUISettings = "HKLM:\SOFTWARE\Policies\Microsoft\MUI\Settings"
-      New-Item -Path $MUISettings -Force
-      Set-ItemProperty -Path $MUISettings -Name "PreferredUILanguages" -Value "en-US" -Type MultiString
-      
-      # Set user locale settings
-      Set-WinUILanguageOverride -Language en-US
-      Set-WinSystemLocale en-US
-      Set-Culture en-US
-      Set-WinHomeLocation -GeoId 244
-      
-      # Force Windows to use English display language
-      $UserLanguageList = New-WinUserLanguageList -Language "en-US"
-      $UserLanguageList[0].Handwriting = 1
-      Set-WinUserLanguageList -LanguageList $UserLanguageList -Force
-    ',
-    logoutput => true,
-    require   => Exec['install-language-pack'],
-  }
-
-  # Create a startup task to ensure settings persist
-  exec { 'create-display-language-task':
-    provider => powershell,
-    command  => '
-      $Action = New-ScheduledTaskAction -Execute "powershell.exe" -Argument "-NoProfile -WindowStyle Hidden -Command Set-WinUILanguageOverride -Language en-US"
-      $Trigger = New-ScheduledTaskTrigger -AtStartup
-      $Principal = New-ScheduledTaskPrincipal -UserId "SYSTEM" -LogonType ServiceAccount -RunLevel Highest
-      Register-ScheduledTask -TaskName "SetWindowsDisplayLanguage" -Action $Action -Trigger $Trigger -Principal $Principal -Force
-    ',
-    unless   => 'Get-ScheduledTask -TaskName "SetWindowsDisplayLanguage" -ErrorAction SilentlyContinue',
-    require  => Exec['set-display-language'],
-  }
-
-  notify { 'display_language_notice':
-    message => 'Display language settings have been updated. Please restart the computer for all changes to take effect.',
-    require => [Exec['set-display-language'], Exec['create-display-language-task']],
-  }
-
- 
-    #create host user
-   user { 'host':
-   ensure => present,
-   password => 'guest',
-   groups => 'Administrators'
   }
 
 }
