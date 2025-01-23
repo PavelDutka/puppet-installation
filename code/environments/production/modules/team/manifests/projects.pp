@@ -1,3 +1,0 @@
-class team::projects {
-  
-}
