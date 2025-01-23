@@ -1,3 +1,5 @@
+#run "Set-ExecutionPolicy -ExecutionPolicy Unrestricted -Scope LocalMachine" to run this script
+
 # check admin
 function Test-IsAdmin {
     # Get the current Windows identity
@@ -27,8 +29,10 @@ if (-Not (Test-Path "C:\temp")) {
     New-Item -Path "C:\temp" -ItemType Directory
 }
 
-# Step 1: Ask for certname input
-$certname = Read-Host -Prompt "Enter the certname (<team-hardware-computer>)"
+# Step 1: Ask for certname input based on the new naming convention (team-name)
+$teamName = Read-Host -Prompt "Enter the team name (e.g. projects, products, code, marketing)"
+$hardwareName = Read-Host -Prompt "Enter the hardware name (e.g. alena, adam, martin, hexik)"
+$certname = "$teamName-$hardwareName"
 
 # Step 2: Download Puppet Agent Installer
 try {
