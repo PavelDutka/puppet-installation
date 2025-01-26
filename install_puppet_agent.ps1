@@ -21,7 +21,7 @@ if (-not (Test-IsAdmin)) {
 # Define Variables
 $puppetInstallerUrl = "https://downloads.puppetlabs.com/windows/puppet7/puppet-agent-x64-latest.msi"
 $puppetConfPath = "C:\ProgramData\PuppetLabs\puppet\etc\puppet.conf"
-$puppetServer = "serverus"  # Replace with your Puppet master FQDN
+$puppetServer = "serverus" 
 $puppetInstallerPath = "C:\temp\puppet-agent-x64.msi"
 
 # Check and create temp directory if it doesn't exist
@@ -30,14 +30,13 @@ if (-Not (Test-Path "C:\temp")) {
     New-Item -Path "C:\temp" -ItemType Directory
 }
 
-# Step 1: Ask for team selection using numbers
+#Ask for team selection using numbers
 Write-Host "Select your team by entering the corresponding number:"
 Write-Host "1. Projects"
 Write-Host "2. Products"
 Write-Host "3. Code"
 Write-Host "4. Marketing"
-Write-Host "5. Home Office"
-$teamSelection = Read-Host -Prompt "Enter number (1-5)"
+$teamSelection = Read-Host -Prompt "Enter number (1-4)"
 
 # Map the team number to the team name
 switch ($teamSelection) {
@@ -45,18 +44,20 @@ switch ($teamSelection) {
     2 { $teamName = "products" }
     3 { $teamName = "code" }
     4 { $teamName = "marketing" }
-    5 { $teamName = "home_office" }
     default { 
         Write-Host "Invalid selection. Exiting..."
         exit
     }
 }
 
-# Step 2: Ask for hardware name
-$hardwareName = Read-Host -Prompt "Enter the hardware name (e.g. alena, adam, martin, hexik)"
+#Ask for hardware name
+$hardwareName = Read-Host -Prompt "Enter pc name (e.g. aquarium, pavel, martin)"
 $certname = "$teamName-$hardwareName"
 
-# Step 3: Download Puppet Agent Installer
+# Print certname
+Write-Host "Generated certname: $certname"
+
+#Download Puppet Agent Installer
 try {
     Write-Host "Downloading Puppet agent..."
     Invoke-WebRequest -Uri $puppetInstallerUrl -OutFile $puppetInstallerPath -ErrorAction Stop
@@ -65,7 +66,7 @@ try {
     exit
 }
 
-# Step 4: Install Puppet Agent
+#Install Puppet Agent
 try {
     Write-Host "Installing Puppet agent..."
     Start-Process msiexec.exe -ArgumentList "/i $puppetInstallerPath /quiet /norestart" -Wait -ErrorAction Stop
@@ -74,7 +75,7 @@ try {
     exit
 }
 
-# Step 5: Update puppet.conf with certname and server info
+#Update puppet.conf with certname and server info
 Write-Host "Configuring Puppet agent..."
 if (-Not (Test-Path $puppetConfPath)) {
     Write-Host "puppet.conf not found, creating new configuration..."
@@ -87,10 +88,10 @@ Set-Content -Path $puppetConfPath -Value @"
 certname = $certname
 server = $puppetServer
 environment = production
-runinterval = 30m
+runinterval = 24h
 "@
 
-# Step 6: Start Puppet Service
+#Start Puppet Service
 try {
     Write-Host "Starting Puppet service..."
     Start-Service puppet -ErrorAction Stop
@@ -99,7 +100,7 @@ try {
     exit
 }
 
-# Step 7: Ensure Puppet Service Starts Automatically on Boot
+#Ensure Puppet Service Starts Automatically on Boot
 try {
     Write-Host "Setting Puppet service to start automatically on boot..."
     Set-Service puppet -StartupType Automatic -ErrorAction Stop
@@ -108,15 +109,14 @@ try {
     exit
 }
 
-# Step 8: Update the PATH variable for the current session
+#Update the PATH variable for the current session
 $puppetPath = "C:\Program Files\Puppet Labs\Puppet\bin"
 if ($env:PATH -notcontains $puppetPath) {
     Write-Host "Updating PATH for the current session..."
     $env:PATH += ";$puppetPath"
 }
 
-# Step 9: Trigger Puppet agent to request a certificate
-# Changed to use the correct arguments without "-E" flag
+# Trigger Puppet agent to request a certificate
 try {
     Write-Host "Triggering Puppet agent run to request certificate..."
     Start-Process puppet -ArgumentList "agent", "-t" -Wait -ErrorAction Stop
@@ -126,4 +126,3 @@ try {
 }
 
 Write-Host "Puppet agent installed and configured with certname: $certname"
-Write-Host "You may now use the Puppet command in this terminal session."
