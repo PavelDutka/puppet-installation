@@ -21,7 +21,7 @@ if (-not (Test-IsAdmin)) {
 # Define Variables
 $puppetInstallerUrl = "https://downloads.puppetlabs.com/windows/puppet7/puppet-agent-x64-latest.msi"
 $puppetConfPath = "C:\ProgramData\PuppetLabs\puppet\etc\puppet.conf"
-$puppetServer = "serverus" 
+$puppetServer = "serverus"
 $puppetInstallerPath = "C:\temp\puppet-agent-x64.msi"
 
 # Check and create temp directory if it doesn't exist
@@ -44,7 +44,7 @@ switch ($teamSelection) {
     2 { $teamName = "products" }
     3 { $teamName = "code" }
     4 { $teamName = "marketing" }
-    default { 
+    default {
         Write-Host "Invalid selection. Exiting..."
         exit
     }
