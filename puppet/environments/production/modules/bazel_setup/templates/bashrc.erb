@@ -1,0 +1,13 @@
+# no duplicates
+HISTCONTROL=ignoredups:erasedups
+# 100k should be enough for everyone
+HISTSIZE=100000
+HISTFILESIZE=100000
+# When the shell exits, append to the history file instead of overwriting it
+shopt -s histappend
+# Append after each command, so history is saved across sessions
+PROMPT_COMMAND='history -a'
+# Load autocomplete for bazel if it exists
+if [ -f ~/$bazelautocomplete_file ]; then
+    source ~/$bazelautocomplete_file
+fi

@@ -1,3 +1,8 @@
+
+include prepare_windows_workstation
+#  include bazel_setup
+include guest_user
+
 # Assign teams to their specific configurations
 node /^projects/ {
   include projects
@@ -27,3 +32,4 @@ node /^products-filip/ {
 node default {
   include common::config
 }
+

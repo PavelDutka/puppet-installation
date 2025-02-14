@@ -1,0 +1,6 @@
+# short output base on Windows to avoid running into path length limits
+startup --output_base=C:/bz
+# use disk cache even though we might be using remote cache, this speeds up rebuilds when switching branches
+build --disk_cache=C:/bz_cache
+# use repository cache to avoid re-downloads of python packages and other external resources
+build --repository_cache=C:/bz_cache/bazel_repository_cache
