@@ -3,11 +3,8 @@
 
 # check admin
 function Test-IsAdmin {
-    # Get the current Windows identity
     $identity = [System.Security.Principal.WindowsIdentity]::GetCurrent()
-    # Create a Windows principal object
     $principal = New-Object System.Security.Principal.WindowsPrincipal($identity)
-    # Check if the user is an administrator
     return $principal.IsInRole([System.Security.Principal.WindowsBuiltInRole]::Administrator)
 }
 
@@ -50,9 +47,27 @@ switch ($teamSelection) {
     }
 }
 
-#Ask for hardware name
+# Ask for hardware name
 $hardwareName = Read-Host -Prompt "Enter pc name (e.g. aquarium, pavel, martin)"
-$certname = "$teamName-$hardwareName"
+
+# Ask for usage type
+Write-Host "Select the usage type for this computer:"
+Write-Host "1. Personal"
+Write-Host "2. Polygoniq"
+$usageSelection = Read-Host -Prompt "Enter number (1-2)"
+
+# Map the usage selection
+switch ($usageSelection) {
+    1 { $usageType = "personal" }
+    2 { $usageType = "polygoniq" }
+    default { 
+        Write-Host "Invalid selection. Exiting..."
+        exit
+    }
+}
+
+# Construct certname
+$certname = "$teamName-$hardwareName-$usageType"
 
 # Print certname
 Write-Host "Generated certname: $certname"

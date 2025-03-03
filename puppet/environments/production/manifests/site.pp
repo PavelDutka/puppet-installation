@@ -32,4 +32,3 @@ node /^products-filip/ {
 node default {
   include common::config
 }
-
