@@ -1,34 +1,34 @@
 
 include prepare_windows_workstation
-#  include bazel_setup
+#include bazel_setup
 include guest_user
 
 # Assign teams to their specific configurations
 node /^projects/ {
-  include projects
+include projects
 }
 
 node /^products/ {
-  include products
+include products
 }
 
 node /^code/ {
-  include code
+include code
 }
 
 node /^marketing/ {
-  include marketing
+include marketing
 }
 
 node /^projects-vasek/ {
-  include home_office
+include home_office
 }
 
 node /^products-filip/ {
-  include home_office
+include home_office
 }
 
 #if doesnt match any cert name
 node default {
-  include common::config
+include common::config
 }
